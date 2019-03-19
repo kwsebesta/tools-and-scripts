@@ -1,11 +1,10 @@
-"""binary_classifier: script to make a framework to spot check binary 
+"""binary_classifier: script to make a framework to spot check binary
 machine learning classification models
 """
 import warnings
 import matplotlib.pyplot as plt
 from numpy import mean
 from numpy import std
-from sklearn.datasets import make_classification
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
@@ -30,8 +29,8 @@ def define_models(models=dict()):
     # linear models
     models["logistic"] = LogisticRegression()
     alpha = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-    for a in alpha:
-        models["ridge-" + str(a)] = RidgeClassifier(alpha=a)
+    for value in alpha:
+        models["ridge-" + str(value)] = RidgeClassifier(alpha=value)
     models["sgd"] = SGDClassifier(max_iter=1000, tol=1e-3)
     models["pa"] = PassiveAggressiveClassifier(max_iter=1000, tol=1e-3)
     # non-linear models
@@ -56,42 +55,48 @@ def define_models(models=dict()):
     print("Defined %d models" % len(models))
     return models
 
+
 # create a feature preparation pipeline for a model
 # Below exist 4 options: none, standardize, normalize, or stand.+norm.
 def pipeline_none(model):
     """No transforms pipeline"""
     return model
 
+
 def pipeline_standardize(model):
     """Standardize transform pipeline"""
     steps = list()
-    steps.append(('standardize', StandardScaler()))
-    steps.append(('model', model))
+    steps.append(("standardize", StandardScaler()))
+    steps.append(("model", model))
     pipeline = Pipeline(steps=steps)
     return pipeline
+
 
 def pipeline_normalize(model):
     """Normalize transform pipeline"""
     steps = list()
-    steps.append(('normalize', MinMaxScaler()))
-    steps.append(('model', model))
+    steps.append(("normalize", MinMaxScaler()))
+    steps.append(("model", model))
     pipeline = Pipeline(steps=steps)
     return pipeline
+
 
 def pipeline_std_norm(model):
     """ Standardize and normalize pipeline"""
     steps = list()
-    steps.append(('standardize', StandardScaler()))
-    steps.append(('normalize', MinMaxScaler()))
-    steps.append(('model', model))
+    steps.append(("standardize", StandardScaler()))
+    steps.append(("normalize", MinMaxScaler()))
+    steps.append(("model", model))
     pipeline = Pipeline(steps=steps)
     return pipeline
+
 
 def evaluate_model(X, y, model, folds, metric, pipe_func):
     """ Evaluate a signle model with a pipeline"""
     pipeline = pipe_func(model)
     scores = cross_val_score(pipeline, X, y, scoring=metric, cv=folds, n_jobs=-1)
     return scores
+
 
 def robust_evaluate_model(X, y, model, folds, metric, pipe_func):
     """ Evaluate a model and try to trap errors and and hide warnings"""
@@ -104,8 +109,9 @@ def robust_evaluate_model(X, y, model, folds, metric, pipe_func):
         scores = None
     return scores
 
-# evaluate a dict of models {name:object}, returns {name:score}
-def evaluate_models(X, y, models, pipe_funcs, folds=10, metric='accuracy'):
+
+def evaluate_models(X, y, models, pipe_funcs, folds=10, metric="accuracy"):
+    """ Evaluate a dict of models {name:object}, returns {name:score}"""
     results = dict()
     for name, model in models.items():
         # evaluate model under each preparation function
@@ -119,21 +125,22 @@ def evaluate_models(X, y, models, pipe_funcs, folds=10, metric='accuracy'):
                 # store a result
                 results[run_name] = scores
                 mean_score, std_score = mean(scores), std(scores)
-                print('>%s: %.3f (+/-%.3f)' % (run_name, mean_score, std_score))
+                print(">%s: %.3f (+/-%.3f)" % (run_name, mean_score, std_score))
             else:
-                print('>%s: error' % run_name)
+                print(">%s: error" % run_name)
     return results
- 
-# print and plot the top n results
+
+
 def summarize_results(results, maximize=True, top_n=10):
+    """ Print and plot the top n results"""
     # check for no results
     if len(results) == 0:
-        print('no results')
+        print("no results")
         return
     # determine how many results to summarize
     n = min(top_n, len(results))
     # create a list of (name, mean(scores)) tuples
-    mean_scores = [(k,mean(v)) for k,v in results.items()]
+    mean_scores = [(k, mean(v)) for k, v in results.items()]
     # sort tuples by mean score
     mean_scores = sorted(mean_scores, key=lambda x: x[1])
     # reverse for descending order (e.g. for accuracy)
@@ -147,9 +154,12 @@ def summarize_results(results, maximize=True, top_n=10):
     for i in range(n):
         name = names[i]
         mean_score, std_score = mean(results[name]), std(results[name])
-        print('Rank=%d, Name=%s, Score=%.3f (+/- %.3f)' % (i+1, name, mean_score, std_score))
+        print(
+            "Rank=%d, Name=%s, Score=%.3f (+/- %.3f)"
+            % (i + 1, name, mean_score, std_score)
+        )
     # boxplot for the top n
     plt.boxplot(scores, labels=names)
     _, labels = plt.xticks()
     plt.setp(labels, rotation=90)
-    plt.savefig('spotcheck.png')
+    plt.savefig("spotcheck.png")
